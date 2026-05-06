@@ -1,0 +1,498 @@
+<!doctype html>
+<html lang="bg">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Семеен списък</title>
+<meta name="theme-color" content="#111827">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Семеен списък">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:#e5e7eb;font-family:system-ui,Arial,sans-serif;color:#111827}
+.app{max-width:520px;margin:auto;min-height:100vh;background:#f8fafc;padding-bottom:24px}
+
+/* ───── HEADER ───── */
+header{background:#111827;color:#fff;padding:20px 18px 18px;border-radius:0 0 26px 26px;margin-bottom:4px}
+h1{margin:0;font-size:25px;font-weight:900}
+header p{margin:5px 0 0;color:#94a3b8;font-size:13px}
+
+/* ───── СЕКЦИИ ───── */
+.sec{padding:14px 16px}
+
+/* ───── КУТИЙКИ ───── */
+.item-card{
+  background:#fff;
+  border-radius:16px;
+  padding:14px 16px;
+  margin-bottom:10px;
+  border:1.5px solid #e2e8f0;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  cursor:pointer;
+  transition:border-color .15s, opacity .2s;
+  -webkit-user-select:none;user-select:none;
+}
+.item-card:active{opacity:.75}
+.item-card.done{opacity:.55}
+.item-card.done .item-name{text-decoration:line-through;color:#94a3b8}
+
+/* Чекбокс */
+.cb{
+  width:26px;height:26px;min-width:26px;
+  border-radius:8px;
+  border:2px solid #cbd5e1;
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;
+  transition:background .15s,border-color .15s;
+}
+.item-card.done .cb{background:#16a34a;border-color:#16a34a;color:#fff}
+
+.item-info{flex:1;min-width:0}
+.item-name{font-size:16px;font-weight:600;color:#111827}
+.item-date{font-size:12px;color:#94a3b8;margin-top:3px}
+.item-done-date{font-size:12px;color:#16a34a;margin-top:2px}
+
+/* Бадж статус */
+.badge{
+  font-size:11px;font-weight:700;
+  padding:4px 10px;border-radius:999px;
+  white-space:nowrap;flex-shrink:0;
+}
+.badge-pending{background:#dbeafe;color:#1d4ed8}
+.badge-done{background:#dcfce7;color:#15803d}
+
+/* ───── СТАТИСТИКА ───── */
+.stat-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-box{background:#111827;color:#fff;border-radius:16px;padding:14px 16px;text-align:center}
+.stat-box .num{font-size:30px;font-weight:900}
+.stat-box .lbl{color:#94a3b8;font-size:12px;margin-top:2px}
+
+/* ───── ДОБАВЯНЕ ───── */
+.add-row{display:flex;gap:8px;margin-bottom:16px}
+.add-row input{
+  flex:1;padding:12px 14px;
+  border-radius:14px;border:1.5px solid #cbd5e1;
+  font-size:15px;background:#fff;
+  transition:border-color .15s;
+}
+.add-row input:focus{outline:none;border-color:#111827}
+.add-row button{
+  padding:12px 16px;border-radius:14px;border:none;
+  background:#111827;color:#fff;font-size:20px;
+  cursor:pointer;transition:opacity .15s;
+}
+.add-row button:active{opacity:.75}
+
+/* ───── СЕКЦИЯ ЗАГЛАВИЕ ───── */
+.section-title{
+  font-size:12px;font-weight:700;color:#94a3b8;
+  text-transform:uppercase;letter-spacing:.06em;
+  margin:0 0 10px;
+}
+
+/* ───── ПРАЗЕН СПИСЪК ───── */
+.empty{
+  text-align:center;padding:40px 20px;color:#94a3b8;font-size:15px;
+}
+.empty span{font-size:40px;display:block;margin-bottom:10px}
+
+/* ───── ИЗТРИВАНЕ (свайп) ───── */
+.item-card .del-btn{
+  display:none;
+  background:none;border:none;
+  color:#dc2626;font-size:20px;
+  cursor:pointer;padding:4px;
+  flex-shrink:0;
+}
+.item-card:hover .del-btn,
+.item-card.show-del .del-btn{display:block}
+
+/* ───── ВЛИЗАНЕ ───── */
+#login-screen{
+  position:fixed;inset:0;z-index:9999;
+  background:#111827;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:32px 24px;
+}
+#login-box{max-width:340px;width:100%;text-align:center}
+#google-btn{
+  display:flex;align-items:center;justify-content:center;gap:12px;
+  width:100%;padding:14px 20px;
+  background:#fff;color:#111827;
+  border:none;border-radius:14px;
+  font-size:16px;font-weight:700;cursor:pointer;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  transition:opacity .15s;
+}
+#google-btn:active{opacity:.75}
+#login-err{
+  display:none;margin-top:14px;
+  background:#fee2e2;color:#991b1b;
+  border-radius:12px;padding:12px;font-size:14px;font-weight:600;
+}
+
+/* ───── SYNC ───── */
+#sync{font-size:12px;color:#94a3b8;margin-top:4px}
+
+/* ───── ФЛАШ ───── */
+.flash{
+  padding:12px 14px;border-radius:12px;
+  font-weight:700;font-size:14px;
+  margin-bottom:12px;display:none;
+}
+.flash.ok{background:#dcfce7;color:#15803d}
+.flash.err{background:#fee2e2;color:#991b1b}
+
+/* ───── ПОТРЕБИТЕЛ ───── */
+.user-row{
+  display:flex;align-items:center;gap:10px;
+  background:#1f2937;border-radius:12px;
+  padding:10px 14px;margin-top:10px;
+}
+.user-row img{width:32px;height:32px;border-radius:50%}
+.user-row span{color:#e5e7eb;font-size:13px;font-weight:600;flex:1}
+.sign-out{
+  background:none;border:1px solid #374151;
+  color:#94a3b8;font-size:11px;font-weight:600;
+  padding:5px 10px;border-radius:8px;cursor:pointer;
+  width:auto;
+}
+.sign-out:active{opacity:.75}
+</style>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+</head>
+<body>
+
+<!-- ═══ ЕКРАН ЗА ВХОД ═══ -->
+<div id="login-screen">
+  <div id="login-box">
+    <div style="font-size:52px;margin-bottom:12px">🛒</div>
+    <h1 style="color:#fff;font-size:28px;font-weight:900;margin:0 0 6px">Семеен списък</h1>
+    <p style="color:#94a3b8;font-size:14px;margin:0 0 36px">Влез с Google акаунт</p>
+
+    <button id="google-btn" onclick="signInGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48">
+        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Вход с Google
+    </button>
+
+    <div id="login-err"></div>
+    <p style="color:#475569;font-size:12px;margin-top:28px;line-height:1.6">
+      Само членове на семейството<br>имат достъп до списъка.
+    </p>
+  </div>
+</div>
+
+<!-- ═══ ГЛАВНО ПРИЛОЖЕНИЕ ═══ -->
+<div class="app">
+
+  <header>
+    <h1>🛒 Семеен списък</h1>
+    <p>Заявявай · купувай · отмятай</p>
+    <div id="sync">🔄 Свързване...</div>
+    <div class="user-row" id="user-row" style="display:none">
+      <img id="user-photo" src="" alt="">
+      <span id="user-name"></span>
+      <button class="sign-out" onclick="signOut()">Изход</button>
+    </div>
+  </header>
+
+  <div class="sec">
+
+    <div id="flash" class="flash"></div>
+
+    <!-- Статистика -->
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="num" id="cnt-pending">0</div>
+        <div class="lbl">Заявени</div>
+      </div>
+      <div class="stat-box">
+        <div class="num" id="cnt-done">0</div>
+        <div class="lbl">Купени днес</div>
+      </div>
+    </div>
+
+    <!-- Добавяне -->
+    <div class="add-row">
+      <input id="inp-name" type="text" placeholder="Добави продукт..." autocomplete="off"
+             onkeydown="if(event.key==='Enter')addItem()">
+      <button onclick="addItem()" title="Добави">＋</button>
+    </div>
+
+    <!-- Заявени -->
+    <div id="section-pending">
+      <p class="section-title">Заявени</p>
+      <div id="list-pending"></div>
+    </div>
+
+    <!-- Купени -->
+    <div id="section-done" style="margin-top:20px;display:none">
+      <p class="section-title">Купени</p>
+      <div id="list-done"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  FIREBASE КОНФИГУРАЦИЯ
+//  Замени с данните от твоя Firebase проект!
+// ════════════════════════════════════════════════
+var firebaseConfig = {
+  apiKey:            "AIzaSyBh650O1UrKL6FpbgDjZf35EPZD-CIha3c",
+  authDomain:        "family-shop-900e4.firebaseapp.com",
+  projectId:         "family-shop-900e4",
+  storageBucket:     "family-shop-900e4.firebasestorage.app",
+  messagingSenderId: "1026599977960",
+  appId:             "1:1026599977960:web:598d794361f258317d9a5d"
+};
+
+firebase.initializeApp(firebaseConfig);
+var db   = firebase.firestore();
+var auth = firebase.auth();
+var col  = db.collection('shopping_items');
+var unsubscribe = null;
+
+// ════════════════════════════════════════════════
+//  ВХОД / ИЗХОД
+// ════════════════════════════════════════════════
+function signInGoogle(){
+  var provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithRedirect(provider).catch(function(err){
+    showLoginErr(err.message);
+  });
+}
+
+function signOut(){
+  if(!confirm('Изход от профила?')) return;
+  auth.signOut();
+}
+
+auth.onAuthStateChanged(function(user){
+  if(user){
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('user-row').style.display = 'flex';
+    document.getElementById('user-name').textContent = user.displayName || user.email;
+    if(user.photoURL){
+      document.getElementById('user-photo').src = user.photoURL;
+    }
+    startListening();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('user-row').style.display = 'none';
+    if(unsubscribe) { unsubscribe(); unsubscribe = null; }
+  }
+});
+
+function showLoginErr(msg){
+  var el = document.getElementById('login-err');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+// ════════════════════════════════════════════════
+//  СЛУШАМЕ FIRESTORE В РЕАЛНО ВРЕМЕ
+// ════════════════════════════════════════════════
+var items = [];
+
+function startListening(){
+  setSyncStatus('🔄 Свързване...');
+  unsubscribe = col
+    .orderBy('createdAt', 'desc')
+    .onSnapshot(function(snap){
+      items = snap.docs.map(function(d){
+        return Object.assign({id: d.id}, d.data());
+      });
+      setSyncStatus('✅ Синхронизирано');
+      render();
+    }, function(err){
+      setSyncStatus('❌ Грешка: ' + err.message);
+    });
+}
+
+function setSyncStatus(msg){
+  document.getElementById('sync').textContent = msg;
+}
+
+// ════════════════════════════════════════════════
+//  РЕНДИРАНЕ НА СПИСЪКА
+// ════════════════════════════════════════════════
+function render(){
+  var pending = items.filter(function(i){ return i.status === 'PENDING'; });
+  var done    = items.filter(function(i){ return i.status === 'DONE'; });
+
+  document.getElementById('cnt-pending').textContent = pending.length;
+  document.getElementById('cnt-done').textContent    = done.length;
+
+  renderList('list-pending', pending);
+  renderList('list-done', done);
+
+  document.getElementById('section-done').style.display = done.length ? 'block' : 'none';
+}
+
+function renderList(containerId, list){
+  var wrap = document.getElementById(containerId);
+  wrap.innerHTML = '';
+
+  if(!list.length){
+    if(containerId === 'list-pending'){
+      wrap.innerHTML = '<div class="empty"><span>✅</span>Нищо за купуване!</div>';
+    }
+    return;
+  }
+
+  list.forEach(function(item){
+    var isDone = item.status === 'DONE';
+    var card = document.createElement('div');
+    card.className = 'item-card' + (isDone ? ' done' : '');
+    card.dataset.id = item.id;
+
+    // Дата на добавяне
+    var addedStr = '';
+    if(item.createdAt && item.createdAt.toDate){
+      addedStr = 'Добавено: ' + fmtDate(item.createdAt.toDate());
+    }
+
+    // Дата на купуване
+    var doneStr = '';
+    if(isDone && item.completedAt && item.completedAt.toDate){
+      doneStr = '<div class="item-done-date">Купено: ' + fmtDate(item.completedAt.toDate()) + '</div>';
+    }
+
+    card.innerHTML =
+      '<div class="cb">' + (isDone ? '✓' : '') + '</div>' +
+      '<div class="item-info">' +
+        '<div class="item-name">' + esc(item.name) + '</div>' +
+        '<div class="item-date">' + addedStr + '</div>' +
+        doneStr +
+      '</div>' +
+      '<span class="badge ' + (isDone ? 'badge-done' : 'badge-pending') + '">' +
+        (isDone ? 'Купено' : 'Заявено') +
+      '</span>' +
+      '<button class="del-btn" title="Изтрий" onclick="delItem(event,\'' + item.id + '\')">🗑</button>';
+
+    card.addEventListener('click', function(e){
+      if(e.target.classList.contains('del-btn')) return;
+      toggleItem(item);
+    });
+
+    // Дълго натискане → показва бутон за изтриване (мобилно)
+    var pressTimer;
+    card.addEventListener('touchstart', function(){
+      pressTimer = setTimeout(function(){ card.classList.add('show-del'); }, 600);
+    }, {passive:true});
+    card.addEventListener('touchend', function(){ clearTimeout(pressTimer); });
+
+    wrap.appendChild(card);
+  });
+}
+
+// ════════════════════════════════════════════════
+//  ДОБАВЯНЕ
+// ════════════════════════════════════════════════
+function addItem(){
+  var inp  = document.getElementById('inp-name');
+  var name = inp.value.trim();
+  if(!name) return;
+
+  // 7 дни за автоматично изтриване на купените
+  var sevenDays = new Date(Date.now() + 7*24*60*60*1000);
+
+  col.add({
+    name:        name,
+    status:      'PENDING',
+    createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+    completedAt: null,
+    deleteAfter: firebase.firestore.Timestamp.fromDate(sevenDays)
+  }).then(function(){
+    inp.value = '';
+    flash('Добавено: ' + name, 'ok');
+  }).catch(function(err){
+    flash('Грешка: ' + err.message, 'err');
+  });
+}
+
+// ════════════════════════════════════════════════
+//  ОТМЯТАНЕ / ОБРАТНО
+// ════════════════════════════════════════════════
+function toggleItem(item){
+  var isDone = item.status === 'DONE';
+  var updates;
+
+  if(isDone){
+    // Обратно към заявено
+    updates = {
+      status:      'PENDING',
+      completedAt: null,
+      deleteAfter: null
+    };
+  } else {
+    // Отмятаме като купено
+    var sevenDays = new Date(Date.now() + 7*24*60*60*1000);
+    updates = {
+      status:      'DONE',
+      completedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      deleteAfter: firebase.firestore.Timestamp.fromDate(sevenDays)
+    };
+  }
+
+  col.doc(item.id).update(updates).catch(function(err){
+    flash('Грешка: ' + err.message, 'err');
+  });
+}
+
+// ════════════════════════════════════════════════
+//  ИЗТРИВАНЕ
+// ════════════════════════════════════════════════
+function delItem(e, id){
+  e.stopPropagation();
+  var item = items.find(function(i){ return i.id === id; });
+  var name = item ? item.name : 'продукта';
+  if(!confirm('Изтрий "' + name + '"?')) return;
+
+  col.doc(id).delete().catch(function(err){
+    flash('Грешка: ' + err.message, 'err');
+  });
+}
+
+// ════════════════════════════════════════════════
+//  ПОМОЩНИ ФУНКЦИИ
+// ════════════════════════════════════════════════
+function fmtDate(d){
+  var dd = String(d.getDate()).padStart(2,'0');
+  var mm = ['яну','фев','мар','апр','май','юни','юли','авг','сеп','окт','ное','дек'][d.getMonth()];
+  var hh = String(d.getHours()).padStart(2,'0');
+  var mi = String(d.getMinutes()).padStart(2,'0');
+  return dd + ' ' + mm + ', ' + hh + ':' + mi;
+}
+
+function esc(str){
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+var flashTimer;
+function flash(msg, type){
+  var el = document.getElementById('flash');
+  el.textContent = msg;
+  el.className = 'flash ' + type;
+  el.style.display = 'block';
+  clearTimeout(flashTimer);
+  flashTimer = setTimeout(function(){ el.style.display = 'none'; }, 3000);
+}
+</script>
+</body>
+</html>
