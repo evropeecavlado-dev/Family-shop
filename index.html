@@ -272,8 +272,12 @@ var unsubscribe = null;
 // ════════════════════════════════════════════════
 function signInGoogle(){
   var provider = new firebase.auth.GoogleAuthProvider();
-  auth.signInWithRedirect(provider).catch(function(err){
-    showLoginErr(err.message);
+  auth.signInWithPopup(provider).catch(function(err){
+    if(err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user'){
+      auth.signInWithRedirect(provider);
+    } else {
+      showLoginErr(err.message);
+    }
   });
 }
 
@@ -281,6 +285,13 @@ function signOut(){
   if(!confirm('Изход от профила?')) return;
   auth.signOut();
 }
+
+// Обработваме резултата след redirect
+auth.getRedirectResult().catch(function(err){
+  if(err.code !== 'auth/no-current-user'){
+    showLoginErr(err.message);
+  }
+});
 
 auth.onAuthStateChanged(function(user){
   if(user){
