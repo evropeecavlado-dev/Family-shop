@@ -168,6 +168,7 @@ header p{margin:5px 0 0;color:#94a3b8;font-size:13px}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
 </head>
 <body>
 
@@ -266,6 +267,55 @@ var db   = firebase.firestore();
 var auth = firebase.auth();
 var col  = db.collection('shopping_items');
 var unsubscribe = null;
+var messaging = null;
+
+// ════════════════════════════════════════════════
+//  PUSH НОТИФИКАЦИИ (FCM)
+// ════════════════════════════════════════════════
+var VAPID_KEY = 'BHNALFXCQsGIxFtPB2bbNUunSTCYeXxJqQzqXSEYHiKxEYpW-Wjs6Qvr-Bp12pjvpWWqEZoBzB-figA3nM00Ocw';
+
+function initMessaging(){
+  if(!('Notification' in window) || !('serviceWorker' in navigator)) return;
+  try {
+    messaging = firebase.messaging();
+    navigator.serviceWorker.register('/Family-shop/sw.js').then(function(reg){
+      messaging.getToken({ vapidKey: VAPID_KEY, serviceWorkerRegistration: reg })
+        .then(function(token){
+          if(token){
+            // Запазваме токена в Firestore за да можем да пращаме нотификации
+            db.collection('fcm_tokens').doc(token).set({
+              token: token,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+        }).catch(function(err){
+          console.log('FCM token error:', err);
+        });
+    });
+
+    // Нотификация когато приложението е отворено
+    messaging.onMessage(function(payload){
+      var n = payload.notification || {};
+      if(Notification.permission === 'granted'){
+        new Notification(n.title || 'Семеен списък', {
+          body: n.body || '',
+          icon: '/Family-shop/icon-192.png'
+        });
+      }
+    });
+  } catch(e) {
+    console.log('Messaging not supported:', e);
+  }
+}
+
+function requestNotificationPermission(){
+  if(!('Notification' in window)) return;
+  Notification.requestPermission().then(function(permission){
+    if(permission === 'granted'){
+      initMessaging();
+    }
+  });
+}
 
 // ════════════════════════════════════════════════
 //  ВХОД / ИЗХОД
@@ -302,6 +352,7 @@ auth.onAuthStateChanged(function(user){
       document.getElementById('user-photo').src = user.photoURL;
     }
     startListening();
+    requestNotificationPermission();
   } else {
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('user-row').style.display = 'none';
@@ -432,6 +483,7 @@ function addItem(){
   }).then(function(){
     inp.value = '';
     flash('Добавено: ' + name, 'ok');
+    sendNotificationToAll('🛒 Нов продукт добавен', name);
   }).catch(function(err){
     flash('Грешка: ' + err.message, 'err');
   });
@@ -461,7 +513,11 @@ function toggleItem(item){
     };
   }
 
-  col.doc(item.id).update(updates).catch(function(err){
+  col.doc(item.id).update(updates).then(function(){
+    if(!isDone){
+      sendNotificationToAll('✅ Купено', item.name);
+    }
+  }).catch(function(err){
     flash('Грешка: ' + err.message, 'err');
   });
 }
@@ -489,6 +545,16 @@ function fmtDate(d){
   var hh = String(d.getHours()).padStart(2,'0');
   var mi = String(d.getMinutes()).padStart(2,'0');
   return dd + ' ' + mm + ', ' + hh + ':' + mi;
+}
+
+// Изпращаме нотификация до всички устройства чрез Firestore trigger
+// (реалната нотификация се изпраща от sw.js / Cloud Function)
+function sendNotificationToAll(title, body){
+  db.collection('notifications').add({
+    title: title,
+    body: body,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }).catch(function(){});
 }
 
 function esc(str){
