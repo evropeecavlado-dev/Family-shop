@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Само влезли потребители могат да четат и пишат
+    match /shopping_items/{itemId} {
+      allow read, write: if request.auth != null;
+
+      // Само собственикът може да трие (по желание — за сега всички влезли)
+      allow delete: if request.auth != null;
+    }
+  }
+}
